@@ -24,7 +24,7 @@ else
     echo "Unsupported system. Must be Debian/Ubuntu or RHEL/CentOS on amd64."
     exit 1
 fi
-
+sed -i "s|MANAGER_IP|${WAZUH_MANAGER}|g" /var/ossec/etc/ossec.conf
 # --- Enable and Start Agent ---
 sudo systemctl daemon-reload
 sudo systemctl enable wazuh-agent
