@@ -4,7 +4,7 @@
 
 # --- Configuration ---
 WAZUH_MANAGER=$1       # Replace with Wazuh server IP or FQDN
-WAZUH_AGENT_NAME=$2  # Replace with hostname/agent name
+WAZUH_AGENT_NAME=$(hostname) # auto gets machine name
 
 # --- Version ---
 WAZUH_VERSION="4.14.2-1"
@@ -30,6 +30,6 @@ sudo systemctl daemon-reload
 sudo systemctl enable wazuh-agent
 sudo systemctl start wazuh-agent
 
-echo "✅ Wazuh agent installation complete."
+echo "Wazuh agent installation complete."
 echo "Manager: ${WAZUH_MANAGER}"
 echo "Agent Name: ${WAZUH_AGENT_NAME}"
