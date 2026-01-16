@@ -7,6 +7,7 @@ WAITTIME="10"
 # Logs the JSON input received from Wazuh Active Response
 
 LOG_FILE="/var/log/Block_SSH"
+BLOCKED_LOG_FILE="/var/log/Block_SSH-blocked"
 echo "Invoked at $(date)" >> "$LOG_FILE"
 
 # Read all input from STDIN
@@ -30,8 +31,9 @@ while IFS= read -r pts; do
     line=$(echo "$line" | awk '{print $2}')
     echo "PID $line"
     kill "$line"
+    #add blocked action to log
+    echo "$(date '+%Y/%m/%d %H:%M:%S') | $SRCIP" >> "$BLOCKED_LOG_FILE"
 done < <(who | grep -w "$SRCIP" | awk '{print $3}' | grep '^pts/')
-
 
 
 
