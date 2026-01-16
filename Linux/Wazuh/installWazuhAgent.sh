@@ -7,7 +7,7 @@ WAZUH_MANAGER=$1       # Replace with Wazuh server IP or FQDN
 WAZUH_AGENT_NAME=$2  # Replace with hostname/agent name
 
 # --- Version ---
-WAZUH_VERSION="4.14.1-1"
+WAZUH_VERSION="4.14.2-1"
 
 # --- Detect Package Manager ---
 if command -v dpkg >/dev/null 2>&1; then
