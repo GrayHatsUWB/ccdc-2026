@@ -1,9 +1,9 @@
 <#
-Competition script: Reset EVERY domain account password using dsquery/dsmod
+Competition script: Reset EVERY domain account password using NET USER
 and export Username,Password to DomainUsersPasswords.csv for scoring engine.
 
 RUN AS: Domain Admin
-WARNING: This will break services running under domain accounts. Use only in competition environments.
+WARNING: This will break services running under domain accounts.
 #>
 
 # Output CSV path
@@ -50,46 +50,71 @@ $Stats = @{
 }
 
 Write-Host "=== Starting Competition Password Reset ===" -ForegroundColor Cyan
-Write-Host "Target: ALL domain accounts (dsquery/dsmod)" -ForegroundColor Yellow
+Write-Host "Target: ALL domain accounts (excluding krbtgt and svc_*)" -ForegroundColor Yellow
 Write-Host "Output: $outCsv" -ForegroundColor Cyan
 Write-Host "Logging: $logFile`n" -ForegroundColor Cyan
 
-# Query all domain user DNs using dsquery
-Write-Host "Querying all domain users..." -ForegroundColor Cyan
-$dsqueryOutput = & dsquery user -limit 0 2>$null
+# --- NEW USER ENUMERATION LOGIC ---
+Write-Host "Querying domain users via 'net user /domain'..." -ForegroundColor Cyan
+$rawOutput = net user /domain 2>&1
 
-if ($null -eq $dsqueryOutput) {
-    Write-Host "ERROR: dsquery failed - verify you have AD tools installed and domain connectivity" -ForegroundColor Red
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: 'net user /domain' failed. Are you connected to the DC?" -ForegroundColor Red
     exit 1
 }
 
-# Convert output to array (handle single result or multiple)
-$userDNs = @($dsqueryOutput)
-$Stats.Total = $userDNs.Count
+# Parse the columnar output of net user
+# The output has a header, a dashed line, columns of users, and a footer.
+$allUsers = @()
+$parsing = $false
 
-Write-Host "Found $($Stats.Total) accounts. Beginning password resets...`n" -ForegroundColor Cyan
-
-# Process each user
-foreach ($dn in $userDNs) {
-    $dn = $dn.Trim()  # Remove whitespace
-    
-    if ([string]::IsNullOrEmpty($dn)) {
+foreach ($line in $rawOutput) {
+    if ($line -match '^-+') {
+        # Found the separator line, start capturing after this
+        $parsing = $true
         continue
     }
+    if ($line -match 'The command completed successfully') {
+        # Found the footer, stop capturing
+        $parsing = $false
+        break
+    }
     
-    # Extract username from DN (CN=username,...)
-    $cnMatch = $dn -match 'CN=([^,]+)'
-    $sam = $matches[1]
+    if ($parsing -and -not [string]::IsNullOrWhiteSpace($line)) {
+        # Split line by whitespace to get columns and add to list
+        $parts = $line -split '\s+'
+        foreach ($part in $parts) {
+            if (-not [string]::IsNullOrWhiteSpace($part)) {
+                $allUsers += $part
+            }
+        }
+    }
+}
+
+# Remove critical system accounts and Service Accounts (svc_)
+# NOTE: Removing krbtgt prevents breaking the entire domain trust/kerberos
+# UPDATED: Added logic to skip svc_*
+$userList = $allUsers | Where-Object { 
+    $_ -ne 'krbtgt' -and 
+    $_ -notlike 'svc_*' 
+}
+
+$Stats.Total = $userList.Count
+Write-Host "Found $($Stats.Total) accounts (excluding krbtgt/svc_). Beginning password resets...`n" -ForegroundColor Cyan
+
+# --- PROCESS USERS ---
+foreach ($sam in $userList) {
     
     Write-Host "Processing: $sam" -NoNewline
     
     # Generate password
     $plain = New-RandomPassword -Length 24
     
-    # Reset password using dsmod (quotes required for special chars in password)
+    # Reset password using NET USER
     try {
-        # dsmod user DN -pwd password [-s server]
-        $dsmodResult = & dsmod user "$dn" -pwd "$plain" 2>&1
+        # Usage: net user <username> <password> /domain
+        # We redirect StdErr to StdOut (2>&1) to capture error messages
+        $netUserResult = & net user "$sam" "$plain" /domain 2>&1
         
         if ($LASTEXITCODE -eq 0) {
             $Stats.Success++
@@ -99,24 +124,23 @@ foreach ($dn in $userDNs) {
                 Username = $sam
                 Password = $plain
                 Status = "SUCCESS"
-                DN = $dn
                 Timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             }
             
-            "$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss')) | SUCCESS | $sam | $dn" | Out-File -FilePath $logFile -Append
+            "$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss')) | SUCCESS | $sam" | Out-File -FilePath $logFile -Append
         }
         else {
             $Stats.Failed++
             $Stats.FailedAccounts += $sam
-            $errorMsg = $dsmodResult -join "; "
+            # Clean up error message (convert array to string if needed)
+            $errorMsg = ($netUserResult | Out-String).Trim()
             
-            Write-Host " [FAILED: $errorMsg]" -ForegroundColor Red
+            Write-Host " [FAILED]" -ForegroundColor Red
             
             $Results += [PSCustomObject]@{
                 Username = $sam
                 Password = "RESET_FAILED"
                 Status = "FAILED: $errorMsg"
-                DN = $dn
                 Timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             }
             
@@ -128,13 +152,12 @@ foreach ($dn in $userDNs) {
         $Stats.FailedAccounts += $sam
         $errorMsg = $_.Exception.Message
         
-        Write-Host " [EXCEPTION: $errorMsg]" -ForegroundColor Red
+        Write-Host " [EXCEPTION]" -ForegroundColor Red
         
         $Results += [PSCustomObject]@{
             Username = $sam
             Password = "RESET_FAILED"
             Status = "EXCEPTION: $errorMsg"
-            DN = $dn
             Timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
         }
         
@@ -152,10 +175,12 @@ Write-Host "Successful: $($Stats.Success)" -ForegroundColor Green
 Write-Host "Failed: $($Stats.Failed)" -ForegroundColor Red
 
 if ($Stats.Failed -gt 0) {
-    Write-Host "`nFailed Accounts:" -ForegroundColor Red
+    Write-Host "`nFailed Accounts (Check log for details):" -ForegroundColor Red
     $Stats.FailedAccounts | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
 }
 
 Write-Host "`nCSV exported to: $outCsv" -ForegroundColor Cyan
 Write-Host "Log file (detailed): $logFile" -ForegroundColor Cyan
-Write-Host "Success rate: $(([math]::Round($Stats.Success / $Stats.Total * 100, 2)))%" -ForegroundColor Cyan
+if ($Stats.Total -gt 0) {
+    Write-Host "Success rate: $(([math]::Round($Stats.Success / $Stats.Total * 100, 2)))%" -ForegroundColor Cyan
+}
