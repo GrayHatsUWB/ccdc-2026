@@ -169,4 +169,3 @@
   - Disable any network shares that should not be enabled.
 
 - Consider looking at [this](https://github.com/BYU-CCDC/public-ccdc-resources/blob/main/windows/hardening/ww-hardening.ps1) script/repo for solutions. I have no idea if its good.
-
