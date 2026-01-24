@@ -49,11 +49,34 @@
 
 - **Step 5: Patch Known Exploits**
   - Run the [Auto-Patch-Exploits.ps1](../../Windows/Auto-Patch-Exploits.ps1) script
+    > [!INFO]
+    > This scritp will attempt to install security packages as part of the process, and will require a system reboot if any packages are installed. Restart as soon as possible to ensure the security patches are applied.
 
   > [!WARNING]
   > If the script fails, make sure to do these steps manually, as specified below. If the script does not fail, these steps are not necessary.
   - **Zerologon:** Run `Auto-Patch-Zerologon-V2.ps1`.
-  - **SMBv1:** Disable immediately (`Set-SmbServerConfiguration -EnableSMB1Protocol $false`).
+  - **SMBv1:** Check if any services are actively using an SMB share on this machine, before disabling. Make sure to inform other members before disabling SMBv1 so their services don't go down without warning.
+    - `Set-SmbServerConfiguration -EnableSMB1Protocol $false`
+    - If your machine is running Windows 7, Windows Server 2008, or Windows Vista, run this command:
+
+      ```powershell
+      Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" SMB1 -Type DWORD -Value 0 -Force
+      ```
+
+      > [!IMPORTANT]
+      > You must restart after running this powershell command.
+
+  - **SMBv3:** If services are using SMBv1, run this command to enable SMBv3 (Uses SMBv2 stack), which is more secure. If nothing depends on SMB, there is no need to enable SMBv3.
+    - `Set-SmbServerConfiguration -EnableSMB2Protocol $true`
+    - If your machine is running Windows 7, Windows Server 2008, or Windows Vista, run this command:
+
+      ```powershell
+      Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" SMB2 -Type DWORD -Value 1 -Force
+      ```
+
+       > [!IMPORTANT]
+      > You must restart after running this powershell command.
+
   - **Mimikatz Protections:**
     - Disable WDigest credentials in Registry (`UseLogonCredential` = 0).
     - Add `LSA Protection` registry key.
@@ -68,12 +91,12 @@
 
 ## Phase 4: Defensive Tooling
 
-**Goal:** Enable visibility and active protection.
-
-- [ ] **Step 6: Enable Windows Defender / Antivirus**
+- **Step 6: Enable Windows Defender / Antivirus**
   - Ensure Real-time protection is ON via Group Policy.
-  - _Optional:_ Install Malwarebytes (Only if compatible with scoring engine/services).
-- [ ] **Step 7: Windows Updates**
+    - `Computer Configuration` -> `Administrative Templates` -> `Windows Components` -> `Microsoft Defender Antivirus` -> `Real-time Protection` -> `Turn off real-time protection` -> `Enabled`
+  - _Optional:_ Consider installing Malwarebytes (if time allows).
+    - Malwarebytes can lock registry key edits, and alert you if any changes are attempted
+- **Step 7: Windows Updates**
   - Start downloads immediately (resource permitting). Prioritize Security Updates.
 
 ## Phase 5: Persistence Hunting
