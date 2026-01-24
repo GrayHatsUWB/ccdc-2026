@@ -2,29 +2,27 @@
 
 ## Phase 1: Enumeration
 
-> [!TIP]
-> Move to step 2 while this runs, as it can take a while. Don't forget to look at the results, though!
-
 - **Step 1: Enumerate Machine**
   - **Network Scan:** Run `nmap -T4 -sV -sC <IP address>` from a Linux host to see what services are running and what ports are open.
     - Installing and running nmap from a Windows machine can be a pain, so just do it from Linux
+      > [!TIP]
+      > Move to step 2 while this runs, as it can take a while. Don't forget to look at the results!
 
 - **Step 2: Local Audit**
   - **CMD:** Run `netstat -abno` (as Admin) to see Ports mapped to Process Names.
   - **PowerShell:** Run this one-liner to see listening ports and their processes:
 
     - ```powershell
-        Get-NetTCPConnection | Where-Object {$_.State -eq 'Listen'} | Select-Object LocalPort, @{Name="Process"; Expression={(Get-Process -Id $_.OwningProcess).ProcessName}}
+      Get-NetTCPConnection | Where-Object {$_.State -eq 'Listen'} | Select-Object LocalPort, @{Name="Process"; Expression={(Get-Process -Id $_.OwningProcess).ProcessName}}
       ```
 
 ## Phase 2: User & Account Hardening
 
-> [!CAUTION]
-> This script will NOT change the passwords of service accounts (`svc_xxx`). You will NEED to change them yourself, AFTER ensuring you have found all places where the password will need to be updated. DO NOT FORGET TO CHANGE THEM.
-
 - **Step 3: Password Resets**
   - **Domain Controller:** Run `Change-Domain-User-Passwords.ps1`.
     - Only run this if you are on the DC, it will not be useful if you are on a workstation.
+      > [!CAUTION]
+      > This script will NOT change the passwords of service accounts (`svc_xxx`). You will NEED to change them yourself, AFTER ensuring you have found all places where the password will need to be updated. DO NOT FORGET TO CHANGE THEM.
   - **Member Server/Workstation:** Change local Administrator password immediately.
     - `net user Administrator *`
   - **KRBTGT:** Run [this script](https://github.com/zjorz/Public-AD-Scripts/blob/master/Reset-KrbTgt-Password-For-RWDCs-And-RODCs.ps1) to reset the `krbtgt` user password which will invalidate Golden Tickets.
