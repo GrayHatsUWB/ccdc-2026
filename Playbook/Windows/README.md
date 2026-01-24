@@ -3,7 +3,7 @@
 ## Phase 1: Enumeration
 
 > [!TIP]
-> Move to step 2 while this runs, as it can take a while. Don't forget to look at the results, though!
+> Move to step 2 while step 1 runs, as it can take a while. Don't forget to look at the results!
 
 - **Step 1: Enumerate Machine**
   - **Network Scan:** Run `nmap -T4 -sV -sC <IP address>` from a Linux host to see what services are running and what ports are open.
@@ -14,16 +14,18 @@
   - **PowerShell:** Run this one-liner to see listening ports and their processes:
 
     - ```powershell
-        Get-NetTCPConnection | Where-Object {$_.State -eq 'Listen'} | Select-Object LocalPort, @{Name="Process"; Expression={(Get-Process -Id $_.OwningProcess).ProcessName}}
+      Get-NetTCPConnection | Where-Object {$_.State -eq 'Listen'} | Select-Object LocalPort, @{Name="Process"; Expression={(Get-Process -Id $_.OwningProcess).ProcessName}}
       ```
 
 ## Phase 2: User & Account Hardening
 
 > [!CAUTION]
-> This script will NOT change the passwords of service accounts (`svc_xxx`). You will NEED to change them yourself, AFTER ensuring you have found all places where the password will need to be updated. DO NOT FORGET TO CHANGE THEM.
+> The [Change-Domain-User-Passwords.ps1](../../Change-Domain-User-Passwords.ps1) script will NOT change the passwords of service accounts (`svc_xxx`). You will NEED to change them yourself, AFTER ensuring you have found all places where the password will need to be updated.
+>
+> **DO NOT FORGET TO CHANGE THE SERVICE ACCOUNT PASSWORDS!.**
 
 - **Step 3: Password Resets**
-  - **Domain Controller:** Run `Change-Domain-User-Passwords.ps1`.
+  - **Domain Controller:** Run the [Change-Domain-User-Passwords.ps1](../../Change-Domain-User-Passwords.ps1) script.
     - Only run this if you are on the DC, it will not be useful if you are on a workstation.
   - **Member Server/Workstation:** Change local Administrator password immediately.
     - `net user Administrator *`
@@ -31,29 +33,38 @@
     - If you suspect that your machine is being accessed via Golden Tickets, run the script again.
   - **Machine Account:** Run `Reset-ComputerMachinePassword` on your machine.
     - Since all machines are cloned from the same source, this will prevent you from being breached due to another team's carelessness.
-- **Step 4: Account Cleanup**
-  - Run the [Account-Cleanup.ps1](../../Windows/Account-Cleanup.ps1) script
 
-  > [!WARNING]
-  > If the script fails, make sure to do these steps manually, as specified below. If the script does not fail, these steps are not necessary.
+- **Step 4a: Run [Account-Cleanup.ps1](../../Windows/Account-Cleanup.ps1)**
 
+> [!WARNING]
+> If the script fails, make sure to do the steps manually, as specified below. If the script does not fail, skip step 4b.
+
+- **Step 4b: Manual Account Cleanup**
   - Disable Guest account:
     - `net user Guest /active:no`
-  - Audit user list for unauthorized accounts and delete them.
+  - Audit the user list for unauthorized accounts and delete them.
   - **Control Panel:** Enable Always Notify for account changes
-    - `Control Panel\User Accounts\User Accounts` -> `User Account Control Settings` -> `Always Notify`
+    - Navigate to `Control Panel\User Accounts\User Accounts` -> `User Account Control Settings` -> `Always Notify`
+    - Or run:
+
+      ```powershell
+      Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "ConsentPromptBehaviorAdmin" -Value 2; Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -Name "PromptOnSecureDesktop" -Value 1
+      ```
+
   - **Group Policy:** Disable "Store passwords using reversible encryption".
     - `Computer Configuration` -> `Windows Settings` -> `Security Settings` -> `Account Policies` -> `Password Policy` -> `Store password using reversible encryption` -> `Disabled`
 
 ## Phase 3: Attack Surface Reduction
 
-- **Step 5: Patch Known Exploits**
-  - Run the [Auto-Patch-Exploits.ps1](../../Windows/Auto-Patch-Exploits.ps1) script
-    > [!INFO]
-    > This scritp will attempt to install security packages as part of the process, and will require a system reboot if any packages are installed. Restart as soon as possible to ensure the security patches are applied.
+> [!NOTE]
+> The [Auto-Patch-Exploits.ps1](../../Windows/Auto-Patch-Exploits.ps1) script will attempt to install security packages as part of the process, and will require a system reboot if any packages are installed. Restart as soon as possible to ensure the security patches are applied.
 
-  > [!WARNING]
-  > If the script fails, make sure to do these steps manually, as specified below. If the script does not fail, these steps are not necessary.
+- **Step 5a: Run [Auto-Patch-Exploits.ps1](../../Windows/Auto-Patch-Exploits.ps1)**
+
+> [!WARNING]
+> If the script fails, make sure to do the steps manually, as specified below. If the script does not fail, skip step 5b.
+
+- **Step 5b: Manually Patch Known Exploits**
   - **Zerologon:** Run `Auto-Patch-Zerologon-V2.ps1`.
   - **SMBv1:** Check if any services are actively using an SMB share on this machine, before disabling. Make sure to inform other members before disabling SMBv1 so their services don't go down without warning.
     - `Set-SmbServerConfiguration -EnableSMB1Protocol $false`
@@ -61,10 +72,7 @@
 
       ```powershell
       Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" SMB1 -Type DWORD -Value 0 -Force
-      ```
-
-      > [!IMPORTANT]
-      > You must restart after running this powershell command.
+       ```
 
   - **SMBv3:** If services are using SMBv1, run this command to enable SMBv3 (Uses SMBv2 stack), which is more secure. If nothing depends on SMB, there is no need to enable SMBv3.
     - `Set-SmbServerConfiguration -EnableSMB2Protocol $true`
@@ -74,20 +82,31 @@
       Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" SMB2 -Type DWORD -Value 1 -Force
       ```
 
-       > [!IMPORTANT]
-      > You must restart after running this powershell command.
-
   - **Mimikatz Protections:**
-    - Disable WDigest credentials in Registry (`UseLogonCredential` = 0).
+    - Disable WDigest credentials in Registry
+
+      ```powershell
+      New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" -Name "UseLogonCredential" -Value 0 -PropertyType DWORD -Force
+      ```
+
     - Add `LSA Protection` registry key.
 
-  > [!INFO]
-  > These steps below are not included in the above script, do them manually
+      ```powershell
+      New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "RunAsPPL" -Value 1 -PropertyType DWORD -Force
+      ```
+
+> [!WARNING]
+> You **MUST** restart after having run any of the commands above for them to apply.
+
+> [!NOTE]
+> These steps below are not included in the above script, you must do them manually
+
+- **Step 5c: Final Manual Checks**
 
   - **RDP Hardening:**
     - Disable "Shutdown without logon".
     - Disable Remote Assistance.
-  - **Accessibility Features:** Check `sethc.exe`, `utilman.exe` in `C:\Windows\System32` modifications (Sticky Keys backdoor).
+  - **Accessibility Features:** Check `sethc.exe`, `utilman.exe` in `C:\Windows\System32` (Sticky Keys backdoor).
 
 ## Phase 4: Defensive Tooling
 
