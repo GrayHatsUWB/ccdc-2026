@@ -12,6 +12,7 @@
 - **Step 2: Local Audit**
   - **CMD:** Run `netstat -abno` (as Admin) to see Ports mapped to Process Names.
   - **PowerShell:** Run this one-liner to see listening ports and their processes:
+
     - ```powershell
         Get-NetTCPConnection | Where-Object {$_.State -eq 'Listen'} | Select-Object LocalPort, @{Name="Process"; Expression={(Get-Process -Id $_.OwningProcess).ProcessName}}
       ```
@@ -19,17 +20,23 @@
 ## Phase 2: User & Account Hardening
 
 > [!CAUTION]
-> This script will NOT change the passwords of service accounts. You will NEED to change them yourself, AFTER ensuring you have found all places where the password will need to be updated. DO NOT FORGET TO CHANGE THEM.
+> This script will NOT change the passwords of service accounts (`svc_xxx`). You will NEED to change them yourself, AFTER ensuring you have found all places where the password will need to be updated. DO NOT FORGET TO CHANGE THEM.
 
 - **Step 3: Password Resets**
   - **Domain Controller:** Run `Change-Domain-User-Passwords.ps1`.
     - Only run this if you are on the DC, it will not be useful if you are on a workstation.
   - **Member Server/Workstation:** Change local Administrator password immediately.
+    - `net user Administrator *`
   - **KRBTGT:** Run [this script](https://github.com/zjorz/Public-AD-Scripts/blob/master/Reset-KrbTgt-Password-For-RWDCs-And-RODCs.ps1) to reset the `krbtgt` user password which will invalidate Golden Tickets.
     - If you suspect that your machine is being accessed via Golden Tickets, run the script again.
   - **Machine Account:** Run `Reset-ComputerMachinePassword` on your machine.
     - Since all machines are cloned from the same source, this will prevent you from being breached due to another team's carelessness.
 - **Step 4: Account Cleanup**
+  - Run the [Account-Cleanup.ps1](../../Windows/Account-Cleanup.ps1) script
+
+  > [!WARNING]
+  > If the script fails, make sure to do these steps manually, as specified below. If the script does not fail, these steps are not necessary.
+
   - Disable Guest account:
     - `net user Guest /active:no`
   - Audit user list for unauthorized accounts and delete them.
@@ -41,16 +48,23 @@
 ## Phase 3: Attack Surface Reduction
 
 - **Step 5: Patch Known Exploits**
+  - Run the [Auto-Patch-Exploits.ps1](../../Windows/Auto-Patch-Exploits.ps1) script
+
+  > [!WARNING]
+  > If the script fails, make sure to do these steps manually, as specified below. If the script does not fail, these steps are not necessary.
   - **Zerologon:** Run `Auto-Patch-Zerologon-V2.ps1`.
   - **SMBv1:** Disable immediately (`Set-SmbServerConfiguration -EnableSMB1Protocol $false`).
   - **Mimikatz Protections:**
     - Disable WDigest credentials in Registry (`UseLogonCredential` = 0).
     - Add `LSA Protection` registry key.
+
+  > [!INFO]
+  > These steps below are not included in the above script, do them manually
+
   - **RDP Hardening:**
     - Disable "Shutdown without logon".
     - Disable Remote Assistance.
-    - Ensure NLA (Network Level Authentication) is enabled.
-  - **Accessibility Features:** Check `sethc.exe`, `utilman.exe` in `System32` for modifications (Sticky Keys backdoor).
+  - **Accessibility Features:** Check `sethc.exe`, `utilman.exe` in `C:\Windows\System32` modifications (Sticky Keys backdoor).
 
 ## Phase 4: Defensive Tooling
 
