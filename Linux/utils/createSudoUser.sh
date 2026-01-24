@@ -1,12 +1,21 @@
 #!/bin/bash
 
 USER="$1"
-PASS="$2"
 
-cp ~/.bash_history ~/.bash_history.b 
+if [[ -z "$USER" ]]; then
+  echo "Usage: $0 <username>"
+  exit 1
+fi
 
-if [[ -z "$USER" || -z "$PASS" ]]; then
-  echo "Usage: $0 <username> <password>"
+if id "$USER" >/dev/null 2>&1; then
+  echo "User '$USER' already exists."
+  exit 1
+fi
+
+read -s -p "Password for $USER: " PASS
+echo
+if [[ -z "$PASS" ]]; then
+  echo "Password cannot be empty."
   exit 1
 fi
 
@@ -27,5 +36,3 @@ else
 fi
 
 echo "User '$USER' created, password set, and added to sudo group if available."
-mv ~/.bash_history.b ~/.bash_history
-rm ~/.bash_history.b
