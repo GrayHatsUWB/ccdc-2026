@@ -120,24 +120,42 @@
   - _Optional:_ Consider installing Malwarebytes (if time allows).
     - Malwarebytes can lock registry key edits, and alert you if any changes are attempted
 - **Step 7: Windows Updates**
-  - Start downloads immediately (resource permitting). Prioritize Security Updates.
+  - Install any updates that are pending to ensure anything else that was missed is patched out. This may take a while, and consume a lot of resources
 
 ## Phase 5: Persistence Hunting
 
-**Goal:** Find and remove backdoors.
-
-- [ ] **Step 8: Install SysInternals & Aurora**
+- **Step 8: Install SysInternals**
   - **Sysmon:** Install with a solid config (e.g., SwiftOnSecurity).
   - **Autoruns:** Check for malicious startup items.
   - **ProcMon:** Monitor for strange process behavior.
-- [ ] **Step 9: Persistence Checks**
+- **Step 9: Persistence Checks**
   - **Task Scheduler:** Look for repeating tasks or tasks running as SYSTEM.
-  - **Startup Folders:** Check `C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp`.
-  - **Registry Run Keys:** Check `HKLM\...\Run` and `HKLM\...\RunOnce`.
-  - **WMI Subscriptions:** Run PowerShell commands to check `__EventFilter`, `__EventConsumer`, and `__FilterToConsumerBinding`.
+  - **Startup Folders:** Check for programs in:
+    - `C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp`
+    - `C:\Users\<Username>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\StartUp`
+  - **Registry Run Keys:** Check these registry keys for anything strange:
+    - `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run`
+    - `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce`
+    - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run`
+    - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce`
+  - **Missing Security Descriptors:** Check for tasks with missing SDs here:
+    - `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree`
+  - **WMI Subscriptions:** Run these PowerShell commands to check for suspicious entries:
+
+    ```powershell
+    Get-WmiObject -Namespace root\subscription -Class __EventFilter
+    ```
+
+    ```powershell
+    Get-WmiObject -Namespace root\subscription -Class __EventConsumer
+    ```
+
+    ```powershell
+    Get-WmiObject -Namespace root\subscription -Class __FilterToConsumerBinding
+    ```
 
 ## Phase 6: Automation & Maintenance
 
-- [ ] **Step 10: Scheduled Tasks (Blue Team)**
-  - Create tasks to periodically re-enable Firewall and Defender.
-  - Create tasks to reset machine passwords periodically.
+- **Step 10: Scheduled Tasks**
+  - Create tasks to periodically re-enable Defender and to Reset the machine password.
+  - Create tasks to reset machine passwords periodically, or just remeber to reset them yourself.
