@@ -115,16 +115,20 @@
     - `Computer Configuration` -> `Administrative Templates` -> `Windows Components` -> `Microsoft Defender Antivirus` -> `Real-time Protection` -> `Turn off real-time protection` -> `Enabled`
   - _Optional:_ Consider installing Malwarebytes (if time allows).
     - Malwarebytes can lock registry key edits, and alert you if any changes are attempted
-- **Step 7: Windows Updates**
+
+- **Step 7: Enable Auditing:** Run the [Audit-Policy.ps1](../../Windows/Audit-Policy.ps1) script
+  - This will allow you to get more info in your Windows Logs.
+
+- **Step 8: Windows Updates**
   - Install any updates that are pending to ensure anything else that was missed is patched out. This may take a while, and consume a lot of resources
 
 ## Phase 5: Persistence Hunting
 
-- **Step 8: Install SysInternals**
+- **Step 9: Install SysInternals**
   - **Sysmon:** Install with a solid config (e.g., SwiftOnSecurity).
   - **Autoruns:** Check for malicious startup items.
   - **ProcMon:** Monitor for strange process behavior.
-- **Step 9: Persistence Checks**
+- **Step 10: Persistence Checks**
   - **Task Scheduler:** Look for repeating tasks or tasks running as SYSTEM.
   - **Startup Folders:** Check for programs in:
     - `C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp`
@@ -152,6 +156,6 @@
 
 ## Phase 6: Automation & Maintenance
 
-- **Step 10: Scheduled Tasks**
+- **Step 11: Scheduled Tasks**
   - Create tasks to periodically re-enable Defender and to Reset the machine password.
   - Create tasks to reset machine passwords periodically, or just remeber to reset them yourself.
