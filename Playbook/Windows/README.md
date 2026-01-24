@@ -8,8 +8,6 @@
 - **Step 1: Enumerate Machine**
   - **Network Scan:** Run `nmap -T4 -sV -sC <IP address>` from a Linux host to see what services are running and what ports are open.
     - Installing and running nmap from a Windows machine can be a pain, so just do it from Linux
-      > [!TIP]
-      > Move to step 2 while this runs, as it can take a while. Don't forget to look at the results!
 
 - **Step 2: Local Audit**
   - **CMD:** Run `netstat -abno` (as Admin) to see Ports mapped to Process Names.
@@ -29,11 +27,9 @@
 - **Step 3: Password Resets**
   - **Domain Controller:** Run the [Change-Domain-User-Passwords.ps1](../../Change-Domain-User-Passwords.ps1) script.
     - Only run this if you are on the DC, it will not be useful if you are on a workstation.
-      > [!CAUTION]
-      > This script will NOT change the passwords of service accounts (`svc_xxx`). You will NEED to change them yourself, AFTER ensuring you have found all places where the password will need to be updated. DO NOT FORGET TO CHANGE THEM.
   - **Member Server/Workstation:** Change local Administrator password immediately.
     - `net user Administrator *`
-  - **KRBTGT:** Run [this script](https://github.com/zjorz/Public-AD-Scripts/blob/master/Reset-KrbTgt-Password-For-RWDCs-And-RODCs.ps1) to reset the `krbtgt` user password which will invalidate Golden Tickets.
+  - **KRBTGT:** Run [Reset-KrbTgt-Password-For-RWDCs-And-RODCs.ps1](https://github.com/zjorz/Public-AD-Scripts/blob/master/Reset-KrbTgt-Password-For-RWDCs-And-RODCs.ps1) to reset the `krbtgt` user password which will invalidate Golden Tickets.
     - If you suspect that your machine is being accessed via Golden Tickets, run the script again.
   - **Machine Account:** Run `Reset-ComputerMachinePassword` on your machine.
     - Since all machines are cloned from the same source, this will prevent you from being breached due to another team's carelessness.
