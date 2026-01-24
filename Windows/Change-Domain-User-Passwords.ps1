@@ -32,20 +32,20 @@ function New-RandomPassword {
     }
     
     # Ensure compliance with typical domain password complexity
-    $pwd = $sb.ToString()
-    if ($pwd -notmatch '[A-Z]') { $pwd = $pwd.Substring(0, $Length-1) + 'Z' }
-    if ($pwd -notmatch '[a-z]') { $pwd = $pwd.Substring(0, $Length-1) + 'z' }
-    if ($pwd -notmatch '\d')    { $pwd = $pwd.Substring(0, $Length-1) + '9' }
-    if ($pwd -notmatch '[!@#\$%\^&\*\(\)\-_=+\[\]\{\}<>?]') { $pwd = $pwd.Substring(0, $Length-1) + '!' }
+    $password = $sb.ToString()
+    if ($password -notmatch '[A-Z]') { $password = $password.Substring(0, $Length - 1) + 'Z' }
+    if ($password -notmatch '[a-z]') { $password = $password.Substring(0, $Length - 1) + 'z' }
+    if ($password -notmatch '\d') { $password = $password.Substring(0, $Length - 1) + '9' }
+    if ($password -notmatch '[!@#\$%\^&\*\(\)\-_=+\[\]\{\}<>?]') { $password = $password.Substring(0, $Length - 1) + '!' }
     
-    return $pwd
+    return $password
 }
 
 $Results = @()
 $Stats = @{
-    Total = 0
-    Success = 0
-    Failed = 0
+    Total          = 0
+    Success        = 0
+    Failed         = 0
     FailedAccounts = @()
 }
 
@@ -121,9 +121,9 @@ foreach ($sam in $userList) {
             Write-Host " [SUCCESS]" -ForegroundColor Green
             
             $Results += [PSCustomObject]@{
-                Username = $sam
-                Password = $plain
-                Status = "SUCCESS"
+                Username  = $sam
+                Password  = $plain
+                Status    = "SUCCESS"
                 Timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             }
             
@@ -138,9 +138,9 @@ foreach ($sam in $userList) {
             Write-Host " [FAILED]" -ForegroundColor Red
             
             $Results += [PSCustomObject]@{
-                Username = $sam
-                Password = "RESET_FAILED"
-                Status = "FAILED: $errorMsg"
+                Username  = $sam
+                Password  = "RESET_FAILED"
+                Status    = "FAILED: $errorMsg"
                 Timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             }
             
@@ -155,9 +155,9 @@ foreach ($sam in $userList) {
         Write-Host " [EXCEPTION]" -ForegroundColor Red
         
         $Results += [PSCustomObject]@{
-            Username = $sam
-            Password = "RESET_FAILED"
-            Status = "EXCEPTION: $errorMsg"
+            Username  = $sam
+            Password  = "RESET_FAILED"
+            Status    = "EXCEPTION: $errorMsg"
             Timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
         }
         
