@@ -159,3 +159,14 @@
 - **Step 11: Scheduled Tasks**
   - Create tasks to periodically re-enable Defender and to Reset the machine password.
   - Create tasks to reset machine passwords periodically, or just remeber to reset them yourself.
+
+## Phase 7: Things I have no documention for yet
+
+- **Step 12: Harden IIS**
+  - Setup minimal pool privileges, disable directory browsing, and disable anonymous authentication
+
+- **Step 13: Disable network shares**
+  - Disable any network shares that should not be enabled.
+
+- Consider looking at [this](https://github.com/BYU-CCDC/public-ccdc-resources/blob/main/windows/hardening/ww-hardening.ps1) script/repo for solutions. I have no idea if its good.
+
