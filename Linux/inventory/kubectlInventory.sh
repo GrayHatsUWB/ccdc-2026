@@ -22,16 +22,15 @@ fi
 
 echo "kubectl binary: $(command -v kubectl)"
 echo "kubectl client version:"
-kubectl version --client --short || true
+kubectl version --client || true
 echo
 
 section "Checking cluster connectivity"
 
-if kubectl version --short >/dev/null 2>&1; then
+if kubectl version >/dev/null 2>&1; then
     echo "Cluster is reachable."
 else
     echo "kubectl exists but cannot reach any cluster."
-    echo "Continuing anyway to gather whatever information is available."
 fi
 echo
 
