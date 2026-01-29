@@ -2,97 +2,131 @@
 
 set -euo pipefail
 
-echo "=== Checking for kubectl ==="
+divider() {
+    echo "------------------------------------------------------------"
+}
+
+section() {
+    divider
+    echo "### $1"
+    divider
+}
+
+echo
+section "Checking kubectl availability"
+
 if ! command -v kubectl >/dev/null 2>&1; then
-    echo "kubectl not found on this system."
+    echo "kubectl is NOT installed on this system."
     exit 1
 fi
-echo "kubectl found: $(command -v kubectl)"
+
+echo "kubectl binary: $(command -v kubectl)"
+echo "kubectl client version:"
+kubectl version --client --short || true
 echo
 
-echo "=== Checking cluster connectivity ==="
-if ! kubectl version --short >/dev/null 2>&1; then
+section "Checking cluster connectivity"
+
+if kubectl version --short >/dev/null 2>&1; then
+    echo "Cluster is reachable."
+else
     echo "kubectl exists but cannot reach any cluster."
-    exit 2
+    echo "Continuing anyway to gather whatever information is available."
 fi
-kubectl version --short
 echo
 
-echo "=== Current Context ==="
+section "Kubeconfig Information"
+kubectl config view || true
+echo
+
+section "Current Context"
 kubectl config current-context || true
 echo
 
-echo "=== All Contexts ==="
+section "All Contexts"
 kubectl config get-contexts || true
 echo
 
-echo "=== Cluster Info ==="
+section "Cluster Info"
 kubectl cluster-info || true
 echo
 
-echo "=== Nodes ==="
+section "Nodes"
 kubectl get nodes -o wide || true
 echo
 
-echo "=== Namespaces ==="
+section "Namespaces"
 kubectl get ns || true
 echo
 
-echo "=== API Resources ==="
+section "API Resources"
 kubectl api-resources || true
 echo
 
-echo "=== API Versions ==="
+section "API Versions"
 kubectl api-versions || true
 echo
 
-echo "=== Pods (all namespaces) ==="
+section "Pods (all namespaces)"
 kubectl get pods -A -o wide || true
 echo
 
-echo "=== Deployments (all namespaces) ==="
+section "Deployments (all namespaces)"
 kubectl get deploy -A -o wide || true
 echo
 
-echo "=== StatefulSets (all namespaces) ==="
+section "StatefulSets (all namespaces)"
 kubectl get statefulset -A -o wide || true
 echo
 
-echo "=== DaemonSets (all namespaces) ==="
+section "DaemonSets (all namespaces)"
 kubectl get daemonset -A -o wide || true
 echo
 
-echo "=== Services (all namespaces) ==="
+section "ReplicaSets (all namespaces)"
+kubectl get rs -A -o wide || true
+echo
+
+section "Jobs (all namespaces)"
+kubectl get jobs -A || true
+echo
+
+section "CronJobs (all namespaces)"
+kubectl get cronjobs -A || true
+echo
+
+section "Services (all namespaces)"
 kubectl get svc -A -o wide || true
 echo
 
-echo "=== Ingresses (all namespaces) ==="
+section "Ingresses (all namespaces)"
 kubectl get ingress -A || true
 echo
 
-echo "=== Events (cluster-wide) ==="
+section "Events (cluster-wide)"
 kubectl get events -A --sort-by=.metadata.creationTimestamp || true
 echo
 
-echo "=== Storage Classes ==="
+section "Storage Classes"
 kubectl get storageclass || true
 echo
 
-echo "=== Persistent Volumes ==="
+section "Persistent Volumes"
 kubectl get pv || true
 echo
 
-echo "=== Persistent Volume Claims (all namespaces) ==="
+section "Persistent Volume Claims (all namespaces)"
 kubectl get pvc -A || true
 echo
 
-echo "=== Cluster Roles ==="
+section "Cluster Roles"
 kubectl get clusterroles || true
 echo
 
-echo "=== Cluster Role Bindings ==="
+section "Cluster Role Bindings"
 kubectl get clusterrolebindings || true
 echo
 
-echo "=== Summary ==="
-echo "Cluster report complete."
+section "Summary"
+echo "Cluster diagnostic report complete."
+divider
