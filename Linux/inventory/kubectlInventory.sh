@@ -58,14 +58,6 @@ section "Namespaces"
 kubectl get ns || true
 echo
 
-section "API Resources"
-kubectl api-resources || true
-echo
-
-section "API Versions"
-kubectl api-versions || true
-echo
-
 section "Pods (all namespaces)"
 kubectl get pods -A -o wide || true
 echo
@@ -116,14 +108,6 @@ echo
 
 section "Persistent Volume Claims (all namespaces)"
 kubectl get pvc -A || true
-echo
-
-section "Cluster Roles"
-kubectl get clusterroles || true
-echo
-
-section "Cluster Role Bindings"
-kubectl get clusterrolebindings || true
 echo
 
 section "Summary"
