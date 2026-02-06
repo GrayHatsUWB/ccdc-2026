@@ -41,4 +41,4 @@ else
   exit 0
 fi
 
-echo "User '$USER' created, password set, and added to sudo group if available."
+# echo "User '$USER' created, password set, and added to sudo group if available."
