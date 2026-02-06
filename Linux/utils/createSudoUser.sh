@@ -7,6 +7,11 @@ if [[ -z "$USER" ]]; then
   exit 1
 fi
 
+if [[ "$EUID" -ne 0 ]]; then
+  echo "This script must be run with sudo."
+  exit 1
+fi
+
 if id "$USER" >/dev/null 2>&1; then
   echo "User '$USER' already exists."
   exit 1
