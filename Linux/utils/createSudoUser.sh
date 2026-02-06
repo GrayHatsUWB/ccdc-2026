@@ -12,8 +12,14 @@ if id "$USER" >/dev/null 2>&1; then
   exit 1
 fi
 
-read -s -p "Password for $USER: " PASS
-echo
+if [[ -z "$PASS" ]]; then
+  if [ -t 0 ]; then
+    read -s -p "Password for $USER: " PASS
+    echo
+  else
+    read -r PASS
+  fi
+fi
 if [[ -z "$PASS" ]]; then
   echo "Password cannot be empty."
   exit 1
