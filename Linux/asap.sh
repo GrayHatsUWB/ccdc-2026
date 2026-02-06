@@ -1,3 +1,8 @@
+if [[ "$EUID" -ne 0 ]]; then
+  echo "This script must be run with sudo."
+  exit 1
+fi
+
 sh "$(dirname "$0")/utils/changePassword.sh" "root"
 sudo passwd -l root > /dev/null
 
