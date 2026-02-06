@@ -12,18 +12,7 @@ if id "$USER" >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ -z "$PASS" ]]; then
-  if [ -t 0 ]; then
-    read -s -p "Password for $USER: " PASS
-    echo
-  else
-    read -r PASS
-  fi
-fi
-if [[ -z "$PASS" ]]; then
-  echo "Password cannot be empty."
-  exit 1
-fi
+PASS=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c "20")
 
 # Create the user with a home directory
 sudo useradd -m -s /bin/bash "$USER"
@@ -41,4 +30,4 @@ else
   exit 0
 fi
 
-# echo "User '$USER' created, password set, and added to sudo group if available."
+echo "$USER,$PASS"
