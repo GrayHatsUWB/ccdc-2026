@@ -27,15 +27,11 @@ if [[ "${SHELL_FIELD#*"sh"}" == "$SHELL_FIELD" ]]; then
   exit 0
 fi
 
-if [[ "$USER" == "root" ]]; then
-  exit 0
-fi
-
 NEWPASS=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c "20")
 echo "$USER,$NEWPASS"
 
 if command -v chpasswd >/dev/null 2>&1; then
-  echo "$USER:$NEWPASS" | chpasswd
+    echo "$USER:$NEWPASS" | chpasswd
 else
   printf "%s\n%s\n" "$NEWPASS" "$NEWPASS" | passwd "$USER"
 fi
