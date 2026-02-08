@@ -1,0 +1,6 @@
+[submodule "ccdc-cli"]
+	path = ccdc-cli
+	url = https://github.com/HyperNova120/ccdc-cli.git
+[submodule "ccdc-ansible"]
+	path = ccdc-ansible
+	url = https://github.com/HyperNova120/ccdc-ansible.git
