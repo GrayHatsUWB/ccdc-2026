@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- Configuration & Arguments ---
-# Usage: ./script.sh <user> <password> <host> <port>
+# Usage: ./mysqlInventory.sh <user> <password> <host> <port>
 USER=${1:-"root"}
 PASS=${2:-""}
 HOST=${3:-"127.0.0.1"}
