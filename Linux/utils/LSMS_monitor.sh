@@ -1,1 +1,1 @@
-./LSMS/start_search.py --monitoring
+./LSMS/start_search.py
