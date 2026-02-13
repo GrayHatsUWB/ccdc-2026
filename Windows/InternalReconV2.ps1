@@ -1,32 +1,64 @@
 <#
 .SYNOPSIS
-    Full Process Integrity & C2 Hunter (UWP Aware)
-    Enumerates ALL running processes, checks digital signatures (including Store Apps), 
-    and maps ANY network activity.
+    Internal Recon & Integrity Scanner
+    
+    MODES:
+    1. Full Scan (Default): Checks ALL running processes for signatures and suspicious paths.
+       Usage: .\InternalRecon.ps1
+       
+    2. Network Only: Checks ONLY processes with active network connections (Ports/Established).
+       Usage: .\InternalRecon.ps1 -NetworkOnly
+
+    OUTPUT:
+    - Save to file: .\InternalRecon.ps1 -OutputFile "MyScan.csv"
 #>
 
 [CmdletBinding()]
 param(
+    # Switch to revert to original "Port Scan" behavior
+    [Parameter(Mandatory=$false)]
+    [switch]$NetworkOnly,
+
+    # Switch to trigger file saving
     [Parameter(Mandatory=$false)]
     [switch]$OutputFile,
 
+    # Catch-all for the filename
     [Parameter(ValueFromRemainingArguments=$true)]
     [string]$CustomName
 )
 
-Write-Host "[-] Starting full process integrity scan (This may take a moment)..." -ForegroundColor Cyan
+# --- CONFIGURATION ---
+$ProgressPreference = 'SilentlyContinue' # Hides progress bars for speed
+
+if ($NetworkOnly) {
+    Write-Host "[-] Starting NETWORK-ONLY scan (Active Ports & Connections)..." -ForegroundColor Cyan
+} else {
+    Write-Host "[-] Starting FULL SYSTEM INTEGRITY scan (All Processes)..." -ForegroundColor Cyan
+}
 
 # --- 1. GATHER DATA ---
-$allProcesses = Get-Process -IncludeUserName -ErrorAction SilentlyContinue
 $allConns = Get-NetTCPConnection -ErrorAction SilentlyContinue
 $allServices = Get-CimInstance -ClassName Win32_Service -Property Name, ProcessId, PathName, DisplayName
 
-# Pre-fetch Appx Packages for speed (Optimization)
+# If NetworkOnly, we start from Connections. If Full, we start from Processes.
+if ($NetworkOnly) {
+    # Get PIDs from connections, then get those specific processes
+    $activePids = $allConns | Select-Object -ExpandProperty OwningProcess -Unique
+    $targetProcesses = $activePids | ForEach-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue }
+} else {
+    # Get EVERYTHING
+    $targetProcesses = Get-Process -IncludeUserName -ErrorAction SilentlyContinue
+}
+
+# Pre-fetch Appx Packages for UWP detection
 $allAppx = Get-AppxPackage -ErrorAction SilentlyContinue
 
 $results = @()
 
-foreach ($proc in $allProcesses) {
+foreach ($proc in $targetProcesses) {
+    if (-not $proc) { continue } # Skip nulls
+    
     $pidNum = $proc.Id
     $processName = $proc.ProcessName
     $path = "N/A"
@@ -68,6 +100,10 @@ foreach ($proc in $allProcesses) {
 
     # --- B. DETECT NETWORK ACTIVITY ---
     $procConns = $allConns | Where-Object { $_.OwningProcess -eq $pidNum }
+    
+    # If NetworkOnly is ON, skip anything that doesn't have connections (Double Check)
+    if ($NetworkOnly -and -not $procConns) { continue }
+
     if ($procConns) {
         $listeners = $procConns | Where-Object { $_.State -eq 'Listen' } | Select-Object -ExpandProperty LocalPort -Unique
         $outbound = $procConns | Where-Object { $_.State -eq 'Established' } | Select-Object -ExpandProperty RemoteAddress -Unique
@@ -85,9 +121,8 @@ foreach ($proc in $allProcesses) {
     if ($pidNum -eq 4) {
         $category = "Core Windows"
     } 
-    # 2. UWP / Windows Store Apps (The Fix)
+    # 2. UWP / Windows Store Apps
     elseif ($path -match "WindowsApps") {
-        # Check if the path contains a valid Package Family Name
         $packageMatch = $allAppx | Where-Object { $path -match $_.PackageFamilyName } | Select-Object -First 1
         
         if ($packageMatch) {
@@ -101,7 +136,6 @@ foreach ($proc in $allProcesses) {
                 $category = "Unverified (Sideloaded UWP)"
             }
         } else {
-            # Fallback if package lookup fails but path is WindowsApps
             $category = "Core Windows (UWP - Unresolved)"
         }
     }
@@ -130,7 +164,7 @@ foreach ($proc in $allProcesses) {
 
     # --- D. SUSPICIOUS PATH CHECK ---
     if ($path -match "AppData|Temp|Public|ProgramData") {
-        if ($category -notmatch "Verified|Microsoft|Windows") {
+        if ($category -notmatch "Verified|Microsoft|Windows|Core") {
             $category = "!! SUSPICIOUS PATH !!"
         }
     }
@@ -171,7 +205,10 @@ foreach ($i in 0..($categories.Count - 1)) {
 $FinalPath = $null
 if ($OutputFile) {
     if (-not [string]::IsNullOrWhiteSpace($CustomName)) { $FinalPath = $CustomName }
-    else { $FinalPath = "FullScan_$(Get-Date -Format 'yyyy-MM-dd_HHmm').csv" }
+    else { 
+        $prefix = if ($NetworkOnly) { "NetScan" } else { "FullScan" }
+        $FinalPath = "${prefix}_$(Get-Date -Format 'yyyy-MM-dd_HHmm').csv" 
+    }
 }
 
 if ($FinalPath) {
@@ -180,7 +217,7 @@ if ($FinalPath) {
     
     try {
         $results | Sort-Object Category, Process | Export-Csv -Path $fullPath -NoTypeInformation -Encoding UTF8
-        Write-Host "`n[V] Full scan saved to: $fullPath" -ForegroundColor Green
+        Write-Host "`n[V] Scan saved to: $fullPath" -ForegroundColor Green
     } catch {
         Write-Host "`n[X] Export failed: $($_.Exception.Message)" -ForegroundColor Red
     }
