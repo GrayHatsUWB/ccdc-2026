@@ -352,10 +352,13 @@ while ($true) {
 
   $summary = Join-Path $OutDir "RUN_SUMMARY.txt"
   Run-PS -Title "Summary (updated)" -OutFile $summary -Script {
-    "Output folder: $using:OutDir"
-    "Generated files:"
-    Get-ChildItem -File $using:OutDir | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize
-  }
+  param($OutDir)
+
+  "Output folder: $OutDir"
+  "Generated files:"
+  Get-ChildItem -File $OutDir | Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize
+  } -Args $OutDir
+
 
   Write-Host "`n[+] Completed selection. Output: $OutDir`n"
   Pause-Enter
