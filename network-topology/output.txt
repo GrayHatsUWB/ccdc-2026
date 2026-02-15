@@ -1,0 +1,46 @@
+================================================================================
+                                  NETWORK MAP                                   
+================================================================================
+
+                            +----------------------+                            
+                            |        Router        |                            
+                            |  IP: 192.168.220.2   |                            
+                            |     OS: unknown      |                            
+                            |       Web: 80        |                            
+                            |      21/tcp ftp      |                            
+                            |      22/tcp ssh      |                            
+                            |    53/tcp domain     |                            
+                            |     80/tcp http      |                            
+                            | 8080/tcp http-proxy  |                            
+                            | 9000/tcp cslistener  |                            
+                            +----------------------+                            
+                                       |                                        
+                                       v                                        
+
++------------------------------------+    +------------------------------------+
+| 192.168.220.25                     |    | 192.168.220.240                    |
+|                                    |    |                                    |
+| OS: unknown                        |    | OS: unknown                        |
+| Web: 80, 443                       |    | Web: 80, 443                       |
+| 22/tcp ssh                         |    | 21/tcp ftp                         |
+| 42/tcp nameserver                  |    | 22/tcp ssh                         |
+| 53/tcp domain                      |    | 80/tcp http                        |
+| 80/tcp http                        |    | 443/tcp https                      |
+| 88/tcp kerberos-sec                |    | 514/tcp shell                      |
+| 135/tcp msrpc                      |    | 8080/tcp http-proxy                |
+| 139/tcp netbios-ssn                |    |                                    |
+| 389/tcp ldap                       |    |                                    |
+| 443/tcp https                      |    |                                    |
+| 445/tcp microsoft-ds               |    |                                    |
+| 464/tcp kpasswd5                   |    |                                    |
+| 515/tcp printer                    |    |                                    |
+| 593/tcp http-rpc-epmap             |    |                                    |
+| 636/tcp ldapssl                    |    |                                    |
+| 2179/tcp vmrdp                     |    |                                    |
+| 3268/tcp globalcatLDAP             |    |                                    |
+| 3269/tcp globalcatLDAPssl          |    |                                    |
+| 3389/tcp ms-wbt-server             |    |                                    |
+| 5357/tcp wsdapi                    |    |                                    |
+| 5985/tcp wsman                     |    |                                    |
++------------------------------------+    +------------------------------------+
+
