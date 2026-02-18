@@ -20,6 +20,21 @@ echo "Folder name: ${BACKUP_DIR}"
 mkdir -p "${BACKUP_DIR}"
 chmod 640 "${BACKUP_DIR}" || true
 
+capture_command_output() {
+  local out="$1"
+  shift
+
+  if command -v "$1" >/dev/null 2>&1; then
+    "$@" > "${out}"
+    echo "[+] Captured $* -> ${out}"
+  else
+    echo "[-] Skipping $* (command not found)" | tee "${out}" >/dev/null
+  fi
+}
+
+capture_command_output "${BACKUP_DIR}/ports" ss -tuln
+capture_command_output "${BACKUP_DIR}/processes" ps aux
+
 archive_dir() {
   local src="$1"
   local out="$2"
